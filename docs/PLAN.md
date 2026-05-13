@@ -8,7 +8,7 @@
 - [x] Review existing frontend code and document in frontend/AGENTS.md
 - [x] Enrich PLAN.md with detailed substeps and checklists for each part
 - [x] Add tests and success criteria for each part
-- [ ] Submit plan for user approval
+- [x] Submit plan for user approval
 
 **Tests & Success Criteria:**
 - PLAN.md contains a clear, actionable checklist for each project part
@@ -39,11 +39,11 @@
 ## Part 3: Add in Frontend
 
 **Checklist:**
-- [ ] Configure FastAPI to serve built Next.js frontend
-- [ ] Build and export static frontend
-- [ ] Integrate static frontend into Docker image
-- [ ] Verify Kanban board displays at /
-- [ ] Write unit and integration tests for frontend
+- [x] Configure FastAPI to serve built Next.js frontend
+- [x] Build and export static frontend
+- [x] Integrate static frontend into Docker image
+- [x] Verify Kanban board displays at /
+- [x] Write unit and integration tests for frontend
 
 **Tests & Success Criteria:**
 - Kanban board loads at /
@@ -54,11 +54,11 @@
 ## Part 4: Add in a fake user sign in experience
 
 **Checklist:**
-- [ ] Add login page to frontend
-- [ ] Require login before showing Kanban
-- [ ] Use hardcoded credentials ("user", "password")
-- [ ] Implement logout
-- [ ] Write tests for login/logout flow
+- [x] Add login page to frontend
+- [x] Require login before showing Kanban
+- [x] Use hardcoded credentials ("user", "password")
+- [x] Implement logout
+- [x] Write tests for login/logout flow
 
 **Tests & Success Criteria:**
 - Kanban is only visible after login

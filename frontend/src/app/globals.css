@@ -65,6 +65,35 @@ button {
   padding: 4px 2px;
 }
 
+.board-header-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.logout-button {
+  display: inline-flex;
+  width: 40px;
+  height: 40px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(3, 33, 71, 0.12);
+  border-radius: 8px;
+  background: var(--panel);
+  color: var(--gray-text);
+  transition: all 160ms ease;
+}
+
+.logout-button:hover {
+  border-color: var(--purple-secondary);
+  background: rgba(117, 57, 145, 0.08);
+  color: var(--purple-secondary);
+}
+
+.logout-button:active {
+  transform: translateY(1px);
+}
+
 .eyebrow {
   margin-bottom: 8px;
   color: var(--purple-secondary);

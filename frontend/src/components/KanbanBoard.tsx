@@ -17,8 +17,9 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { Plus, Trash2 } from "lucide-react";
+import { Plus, Trash2, LogOut } from "lucide-react";
 import { FormEvent, useMemo, useRef, useState } from "react";
+import { useAuth } from "@/context/AuthContext";
 import {
   addCard,
   BoardState,
@@ -34,6 +35,7 @@ import {
 type Drafts = Record<string, { title: string; details: string }>;
 
 export function KanbanBoard() {
+  const { logout } = useAuth();
   const [board, setBoard] = useState<BoardState>(initialBoard);
   const [drafts, setDrafts] = useState<Drafts>(() =>
     Object.fromEntries(
@@ -124,9 +126,19 @@ export function KanbanBoard() {
             to keep work moving.
           </p>
         </div>
-        <div className="board-metric" aria-label={`${cardCount} cards total`}>
-          <span>{cardCount}</span>
-          <small>Cards</small>
+        <div className="board-header-right">
+          <div className="board-metric" aria-label={`${cardCount} cards total`}>
+            <span>{cardCount}</span>
+            <small>Cards</small>
+          </div>
+          <button
+            className="logout-button"
+            onClick={logout}
+            title="Sign out"
+            aria-label="Sign out"
+          >
+            <LogOut size={16} aria-hidden="true" />
+          </button>
         </div>
       </section>
 
