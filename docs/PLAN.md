@@ -69,10 +69,10 @@
 ## Part 5: Database modeling
 
 **Checklist:**
-- [ ] Propose ERD or markdown schema for Kanban
-- [ ] Save schema as JSON example
-- [ ] Document database approach in docs/
-- [ ] Get user sign-off
+- [x] Propose ERD or markdown schema for Kanban
+- [x] Save schema as JSON example
+- [x] Document database approach in docs/
+- [x] Get user sign-off
 
 **Tests & Success Criteria:**
 - Schema is clear, normalized, and supports MVP features
@@ -82,9 +82,9 @@
 ## Part 6: Backend
 
 **Checklist:**
-- [ ] Implement API routes for Kanban CRUD
-- [ ] Ensure DB is created if missing
-- [ ] Write backend unit tests (pytest)
+- [x] Implement API routes for Kanban CRUD
+- [x] Ensure DB is created if missing
+- [x] Write backend unit tests (pytest)
 
 **Tests & Success Criteria:**
 - All API routes work as expected
@@ -95,9 +95,9 @@
 ## Part 7: Frontend + Backend
 
 **Checklist:**
-- [ ] Update frontend to use backend API for Kanban
-- [ ] Ensure board state is persistent
-- [ ] Write integration tests
+- [x] Update frontend to use backend API for Kanban
+- [x] Ensure board state is persistent
+- [x] Write integration tests
 
 **Tests & Success Criteria:**
 - Kanban changes persist across reloads

@@ -1,4 +1,0 @@
-# uv.toml for FastAPI backend
-[dependencies]
-fastapi = "*"
-uvicorn = "*"

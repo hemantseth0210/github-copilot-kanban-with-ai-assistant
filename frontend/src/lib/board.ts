@@ -8,6 +8,7 @@ export type Column = {
   id: string;
   title: string;
   cardIds: string[];
+  position: number;
 };
 
 export type BoardState = {
@@ -21,26 +22,31 @@ export const initialBoard: BoardState = {
       id: "backlog",
       title: "Backlog",
       cardIds: ["card-1", "card-2", "card-3"],
+      position: 0,
     },
     {
       id: "ready",
       title: "Ready",
       cardIds: ["card-4", "card-5"],
+      position: 1,
     },
     {
       id: "doing",
       title: "In Progress",
       cardIds: ["card-6", "card-7"],
+      position: 2,
     },
     {
       id: "review",
       title: "Review",
       cardIds: ["card-8"],
+      position: 3,
     },
     {
       id: "done",
       title: "Done",
       cardIds: ["card-9", "card-10"],
+      position: 4,
     },
   ],
   cards: {
@@ -129,6 +135,7 @@ export function addCard(
   }
 
   return {
+    ...board,
     columns: board.columns.map((column) =>
       column.id === columnId
         ? { ...column, cardIds: [...column.cardIds, card.id] }
@@ -150,6 +157,7 @@ export function deleteCard(board: BoardState, cardId: string): BoardState {
   delete cards[cardId];
 
   return {
+    ...board,
     columns: board.columns.map((column) => ({
       ...column,
       cardIds: column.cardIds.filter((id) => id !== cardId),

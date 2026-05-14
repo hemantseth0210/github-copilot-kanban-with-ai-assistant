@@ -1,0 +1,137 @@
+{
+  "users": [
+    {
+      "id": 1,
+      "username": "user",
+      "password_hash": "password",
+      "created_at": "2024-01-01T00:00:00Z"
+    }
+  ],
+  "boards": [
+    {
+      "id": 1,
+      "user_id": 1,
+      "name": "Launch Kanban",
+      "created_at": "2024-01-01T00:00:00Z"
+    }
+  ],
+  "columns": [
+    {
+      "id": 1,
+      "board_id": 1,
+      "name": "Backlog",
+      "position": 0,
+      "created_at": "2024-01-01T00:00:00Z"
+    },
+    {
+      "id": 2,
+      "board_id": 1,
+      "name": "Ready",
+      "position": 1,
+      "created_at": "2024-01-01T00:00:00Z"
+    },
+    {
+      "id": 3,
+      "board_id": 1,
+      "name": "In Progress",
+      "position": 2,
+      "created_at": "2024-01-01T00:00:00Z"
+    },
+    {
+      "id": 4,
+      "board_id": 1,
+      "name": "Review",
+      "position": 3,
+      "created_at": "2024-01-01T00:00:00Z"
+    },
+    {
+      "id": 5,
+      "board_id": 1,
+      "name": "Done",
+      "position": 4,
+      "created_at": "2024-01-01T00:00:00Z"
+    }
+  ],
+  "cards": [
+    {
+      "id": 1,
+      "column_id": 1,
+      "title": "Sketch onboarding flow",
+      "details": "Map the first-run board experience with clear empty states.",
+      "position": 0,
+      "created_at": "2024-01-01T00:00:00Z"
+    },
+    {
+      "id": 2,
+      "column_id": 1,
+      "title": "Define launch checklist",
+      "details": "Capture the lean set of work needed before the MVP demo.",
+      "position": 1,
+      "created_at": "2024-01-01T00:00:00Z"
+    },
+    {
+      "id": 3,
+      "column_id": 1,
+      "title": "Collect stakeholder notes",
+      "details": "Summarize feedback into crisp card titles and details.",
+      "position": 2,
+      "created_at": "2024-01-01T00:00:00Z"
+    },
+    {
+      "id": 4,
+      "column_id": 2,
+      "title": "Refine card motion",
+      "details": "Make drag and drop feel quick, stable, and predictable.",
+      "position": 0,
+      "created_at": "2024-01-01T00:00:00Z"
+    },
+    {
+      "id": 5,
+      "column_id": 2,
+      "title": "Write board copy",
+      "details": "Keep labels short enough to scan while the board is busy.",
+      "position": 1,
+      "created_at": "2024-01-01T00:00:00Z"
+    },
+    {
+      "id": 6,
+      "column_id": 3,
+      "title": "Build column rename",
+      "details": "Support inline edits without adding settings screens.",
+      "position": 0,
+      "created_at": "2024-01-01T00:00:00Z"
+    },
+    {
+      "id": 7,
+      "column_id": 3,
+      "title": "Polish add-card form",
+      "details": "Use direct controls that work smoothly on narrow screens.",
+      "position": 1,
+      "created_at": "2024-01-01T00:00:00Z"
+    },
+    {
+      "id": 8,
+      "column_id": 4,
+      "title": "Review color contrast",
+      "details": "Check the required palette across headings and actions.",
+      "position": 0,
+      "created_at": "2024-01-01T00:00:00Z"
+    },
+    {
+      "id": 9,
+      "column_id": 5,
+      "title": "Choose project stack",
+      "details": "Use Next.js, TypeScript, and a proven drag and drop library.",
+      "position": 0,
+      "created_at": "2024-01-01T00:00:00Z"
+    },
+    {
+      "id": 10,
+      "column_id": 5,
+      "title": "Seed demo data",
+      "details": "Open directly to a credible board with realistic work.",
+      "position": 1,
+      "created_at": "2024-01-01T00:00:00Z"
+    }
+  ]
+}

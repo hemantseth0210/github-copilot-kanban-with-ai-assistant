@@ -18,7 +18,7 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { Plus, Trash2, LogOut } from "lucide-react";
-import { FormEvent, useMemo, useRef, useState } from "react";
+import { FormEvent, useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
 import {
   addCard,
@@ -27,28 +27,84 @@ import {
   Column,
   deleteCard,
   findCardColumn,
-  initialBoard,
   moveCard,
   renameColumn,
 } from "@/lib/board";
+import {
+  createCard as createCardApi,
+  deleteCard as deleteCardApi,
+  fetchBoard,
+  reorderCards,
+  updateColumn,
+} from "@/lib/api";
 
 type Drafts = Record<string, { title: string; details: string }>;
 
+type CardPositionUpdate = {
+  id: number;
+  column_id: number;
+  position: number;
+};
+
+function buildDrafts(columns: Column[]): Drafts {
+  return Object.fromEntries(
+    columns.map((column) => [column.id, { title: "", details: "" }]),
+  );
+}
+
+function buildCardPositionUpdates(
+  currentBoard: BoardState,
+  updatedBoard: BoardState,
+  movedCardId: string,
+): CardPositionUpdate[] {
+  const sourceColumnBefore = findCardColumn(currentBoard, movedCardId);
+  const destinationColumnAfter = findCardColumn(updatedBoard, movedCardId);
+
+  if (!sourceColumnBefore || !destinationColumnAfter) {
+    return [];
+  }
+
+  if (sourceColumnBefore.id === destinationColumnAfter.id) {
+    return destinationColumnAfter.cardIds.map((cardId, index) => ({
+      id: Number(cardId),
+      column_id: Number(destinationColumnAfter.id),
+      position: index,
+    }));
+  }
+
+  const sourceColumnAfter = updatedBoard.columns.find(
+    (column) => column.id === sourceColumnBefore.id,
+  );
+
+  const updates: CardPositionUpdate[] = [];
+
+  if (sourceColumnAfter) {
+    sourceColumnAfter.cardIds.forEach((cardId, index) => {
+      updates.push({
+        id: Number(cardId),
+        column_id: Number(sourceColumnAfter.id),
+        position: index,
+      });
+    });
+  }
+
+  destinationColumnAfter.cardIds.forEach((cardId, index) => {
+    updates.push({
+      id: Number(cardId),
+      column_id: Number(destinationColumnAfter.id),
+      position: index,
+    });
+  });
+
+  return updates;
+}
+
 export function KanbanBoard() {
   const { logout } = useAuth();
-  const [board, setBoard] = useState<BoardState>(initialBoard);
-  const [drafts, setDrafts] = useState<Drafts>(() =>
-    Object.fromEntries(
-      initialBoard.columns.map((column) => [
-        column.id,
-        {
-          title: "",
-          details: "",
-        },
-      ]),
-    ),
-  );
-  const nextCardNumber = useRef(11);
+  const [board, setBoard] = useState<BoardState | null>(null);
+  const [drafts, setDrafts] = useState<Drafts>({});
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
@@ -59,60 +115,189 @@ export function KanbanBoard() {
       coordinateGetter: sortableKeyboardCoordinates,
     }),
   );
-  const cardCount = useMemo(() => Object.keys(board.cards).length, [board.cards]);
+  const cardCount = useMemo(
+    () => (board ? Object.keys(board.cards).length : 0),
+    [board],
+  );
 
-  function handleAddCard(event: FormEvent<HTMLFormElement>, columnId: string) {
+  useEffect(() => {
+    async function loadBoard() {
+      try {
+        const fetchedBoard = await fetchBoard();
+        setBoard(fetchedBoard);
+        setDrafts(buildDrafts(fetchedBoard.columns));
+      } catch {
+        setError("Unable to load the board. Please try again.");
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
+    loadBoard();
+  }, []);
+
+  async function handleAddCard(event: FormEvent<HTMLFormElement>, columnId: string) {
     event.preventDefault();
 
-    const draft = drafts[columnId];
-    const id = `card-${nextCardNumber.current}`;
-    nextCardNumber.current += 1;
+    if (!board) {
+      return;
+    }
 
-    setBoard((current) =>
-      addCard(current, columnId, {
-        id,
-        title: draft.title,
-        details: draft.details,
-      }),
-    );
-    setDrafts((current) => ({
-      ...current,
-      [columnId]: {
-        title: "",
-        details: "",
-      },
-    }));
+    const draft = drafts[columnId];
+    if (!draft?.title.trim() || !draft?.details.trim()) {
+      return;
+    }
+
+    const column = board.columns.find((column) => column.id === columnId);
+    if (!column) {
+      return;
+    }
+
+    try {
+      const card = await createCardApi(
+        Number(columnId),
+        draft.title,
+        draft.details,
+        column.cardIds.length,
+      );
+
+      const cardId = String(card.id);
+      setBoard((current) =>
+        current
+          ? {
+              ...current,
+              columns: current.columns.map((existing) =>
+                existing.id === columnId
+                  ? { ...existing, cardIds: [...existing.cardIds, cardId] }
+                  : existing,
+              ),
+              cards: {
+                ...current.cards,
+                [cardId]: card,
+              },
+            }
+          : current,
+      );
+      setDrafts((current) => ({
+        ...current,
+        [columnId]: {
+          title: "",
+          details: "",
+        },
+      }));
+    } catch {
+      setError("Unable to add the card. Please try again.");
+    }
   }
 
-  function handleDragEnd(event: DragEndEvent) {
-    const { active, over } = event;
+  async function handleDeleteCard(cardId: string) {
+    if (!board) {
+      return;
+    }
 
+    try {
+      await deleteCardApi(Number(cardId));
+      setBoard((current) =>
+        current
+          ? {
+              ...current,
+              columns: current.columns.map((column) => ({
+                ...column,
+                cardIds: column.cardIds.filter((id) => id !== cardId),
+              })),
+              cards: Object.fromEntries(
+                Object.entries(current.cards).filter(([id]) => id !== cardId),
+              ),
+            }
+          : current,
+      );
+    } catch {
+      setError("Unable to delete the card. Please try again.");
+    }
+  }
+
+  async function handleRename(title: string, columnId: string) {
+    if (!board) {
+      return;
+    }
+
+    const column = board.columns.find((item) => item.id === columnId);
+    if (!column || !title.trim()) {
+      return;
+    }
+
+    try {
+      await updateColumn(Number(columnId), title.trim(), column.position);
+      setBoard((current) =>
+        current
+          ? {
+              ...current,
+              columns: current.columns.map((existing) =>
+                existing.id === columnId
+                  ? { ...existing, title: title.trim() }
+                  : existing,
+              ),
+            }
+          : current,
+      );
+    } catch {
+      setError("Unable to rename the column. Please try again.");
+    }
+  }
+
+  async function handleDragEnd(event: DragEndEvent) {
+    if (!board) {
+      return;
+    }
+
+    const { active, over } = event;
     if (!over || active.id === over.id) {
       return;
     }
 
-    setBoard((current) => {
-      const activeId = String(active.id);
-      const overId = String(over.id);
-      const overColumn = current.columns.find((column) => column.id === overId);
+    const activeId = String(active.id);
+    const overId = String(over.id);
+    const overColumn = board.columns.find((column) => column.id === overId);
 
-      if (overColumn) {
-        return moveCard(current, activeId, overColumn.id);
-      }
+    const updatedBoard = overColumn
+      ? moveCard(board, activeId, overColumn.id)
+      : (() => {
+          const targetColumn = findCardColumn(board, overId);
+          if (!targetColumn) {
+            return board;
+          }
+          return moveCard(
+            board,
+            activeId,
+            targetColumn.id,
+            targetColumn.cardIds.indexOf(overId),
+          );
+        })();
 
-      const targetColumn = findCardColumn(current, overId);
+    if (updatedBoard === board) {
+      return;
+    }
 
-      if (!targetColumn) {
-        return current;
-      }
+    const payload = buildCardPositionUpdates(board, updatedBoard, activeId);
 
-      return moveCard(
-        current,
-        activeId,
-        targetColumn.id,
-        targetColumn.cardIds.indexOf(overId),
-      );
-    });
+    try {
+      await reorderCards(payload);
+      setBoard(updatedBoard);
+    } catch {
+      setError("Unable to update card order. Please try again.");
+    }
+  }
+
+  if (isLoading) {
+    return <main className="app-shell">Loading board…</main>;
+  }
+
+  if (error) {
+    return <main className="app-shell">{error}</main>;
+  }
+
+  if (!board) {
+    return <main className="app-shell">No board found.</main>;
   }
 
   return (
@@ -154,7 +339,7 @@ export function KanbanBoard() {
               key={column.id}
               column={column}
               cards={column.cardIds.map((cardId) => board.cards[cardId])}
-              draft={drafts[column.id]}
+              draft={drafts[column.id] ?? { title: "", details: "" }}
               onDraftChange={(draft) =>
                 setDrafts((current) => ({
                   ...current,
@@ -162,12 +347,8 @@ export function KanbanBoard() {
                 }))
               }
               onAddCard={(event) => handleAddCard(event, column.id)}
-              onDeleteCard={(cardId) =>
-                setBoard((current) => deleteCard(current, cardId))
-              }
-              onRename={(title) =>
-                setBoard((current) => renameColumn(current, column.id, title))
-              }
+              onDeleteCard={handleDeleteCard}
+              onRename={(title) => handleRename(title, column.id)}
             />
           ))}
         </section>
@@ -198,6 +379,11 @@ function KanbanColumn({
   const { setNodeRef, isOver } = useDroppable({
     id: column.id,
   });
+  const [title, setTitle] = useState(column.title);
+
+  useEffect(() => {
+    setTitle(column.title);
+  }, [column.title]);
 
   return (
     <article
@@ -209,8 +395,9 @@ function KanbanColumn({
         <input
           aria-label={`Rename ${column.title} column`}
           className="column-title"
-          value={column.title}
-          onChange={(event) => onRename(event.target.value)}
+          value={title}
+          onChange={(event) => setTitle(event.target.value)}
+          onBlur={() => onRename(title)}
         />
         <span className="card-count">{cards.length}</span>
       </header>
