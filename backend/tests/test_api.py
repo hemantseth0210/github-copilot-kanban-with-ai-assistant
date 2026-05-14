@@ -176,3 +176,28 @@ def test_ai_chat_endpoint(tmp_path: Path) -> None:
             )
             assert response.status_code == 200
             assert response.json()["response"] == "This is the AI response"
+
+
+def test_ai_kanban_endpoint_applies_changes(tmp_path: Path) -> None:
+    with patch.dict(os.environ, {"OPENROUTER_API_KEY": "test-key"}):
+        client = build_test_client(tmp_path)
+        board_data = client.get("/api/board").json()
+        backlog = next(column for column in board_data["columns"] if column["name"] == "Backlog")
+        ready_column = next(column for column in board_data["columns"] if column["name"] == "Ready")
+        card_id = backlog["cards"][0]["id"]
+
+        ai_response = '{"card_updates":[{"id":%d,"column_id":%d,"position":0}]}' % (card_id, ready_column["id"])
+
+        with patch("backend.main.call_ai_with_board", AsyncMock(return_value=ai_response)):
+            response = client.post(
+                "/api/ai/kanban",
+                json={"prompt": "Move one card to Ready","model": "openai/gpt-oss-120b"},
+            )
+            assert response.status_code == 200
+
+            data = response.json()
+            assert data["changes"]["card_updates"][0]["id"] == card_id
+            assert data["board"]["columns"]
+
+            updated_ready = next(column for column in data["board"]["columns"] if column["name"] == "Ready")
+            assert any(card["id"] == card_id for card in updated_ready["cards"])

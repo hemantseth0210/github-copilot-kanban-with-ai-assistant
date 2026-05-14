@@ -257,6 +257,50 @@ def update_card_positions(conn: sqlite3.Connection, updates: List[Dict[str, Any]
     return updated_cards
 
 
+def apply_kanban_changes(conn: sqlite3.Connection, changes: Dict[str, Any]) -> Dict[str, Any]:
+    applied: Dict[str, Any] = {
+        "column_updates": [],
+        "card_updates": [],
+        "new_cards": [],
+    }
+
+    for column_update in changes.get("column_updates", []):
+        column_id = int(column_update["id"])
+        column = update_column(
+            conn,
+            column_id,
+            name=column_update.get("name"),
+            position=column_update.get("position"),
+        )
+        if column is not None:
+            applied["column_updates"].append(column)
+
+    for card_update in changes.get("card_updates", []):
+        card_id = int(card_update["id"])
+        card = update_card(
+            conn,
+            card_id,
+            title=card_update.get("title"),
+            details=card_update.get("details"),
+            column_id=card_update.get("column_id"),
+            position=card_update.get("position"),
+        )
+        if card is not None:
+            applied["card_updates"].append(card)
+
+    for new_card in changes.get("new_cards", []):
+        card = create_card(
+            conn,
+            int(new_card["column_id"]),
+            new_card["title"],
+            new_card["details"],
+            new_card.get("position", 0),
+        )
+        applied["new_cards"].append(card)
+
+    return applied
+
+
 def delete_card(conn: sqlite3.Connection, card_id: int) -> None:
     conn.execute("DELETE FROM cards WHERE id = ?", (card_id,))
     conn.commit()

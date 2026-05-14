@@ -119,10 +119,10 @@
 ## Part 9: AI Kanban integration
 
 **Checklist:**
-- [ ] Extend backend to send Kanban JSON and user question to AI
-- [ ] Parse AI structured output
-- [ ] Update Kanban if AI returns changes
-- [ ] Write tests for AI-Kanban integration
+- [x] Extend backend to send Kanban JSON and user question to AI
+- [x] Parse AI structured output
+- [x] Update Kanban if AI returns changes
+- [x] Write tests for AI-Kanban integration
 
 **Tests & Success Criteria:**
 - AI can update Kanban via structured output

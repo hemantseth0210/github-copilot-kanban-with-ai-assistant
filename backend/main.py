@@ -6,6 +6,7 @@ from pydantic import BaseModel
 
 try:
     from backend.db import (
+        apply_kanban_changes,
         create_card,
         create_column,
         create_connection,
@@ -26,9 +27,10 @@ try:
         ColumnCreate,
         ColumnUpdate,
     )
-    from backend.ai import check_ai_connectivity, call_ai
+    from backend.ai import check_ai_connectivity, call_ai, call_ai_with_board, parse_kanban_changes
 except ImportError:
     from db import (
+        apply_kanban_changes,
         create_card,
         create_column,
         create_connection,
@@ -49,10 +51,15 @@ except ImportError:
         ColumnCreate,
         ColumnUpdate,
     )
-    from ai import check_ai_connectivity, call_ai
+    from ai import check_ai_connectivity, call_ai, call_ai_with_board, parse_kanban_changes
 
 
 class ChatRequest(BaseModel):
+    prompt: str
+    model: str = "openai/gpt-4o-mini"
+
+
+class AiKanbanRequest(BaseModel):
     prompt: str
     model: str = "openai/gpt-4o-mini"
 
@@ -75,6 +82,22 @@ async def test_ai_connectivity_endpoint():
 async def chat_with_ai(request: ChatRequest):
     response = await call_ai(request.prompt, request.model)
     return {"response": response}
+
+@app.post("/api/ai/kanban")
+async def ai_kanban_update(request: AiKanbanRequest):
+    board = get_board(db_connection)
+    if board is None:
+        raise HTTPException(status_code=404, detail="Board not found")
+
+    ai_response = await call_ai_with_board(request.prompt, board, request.model)
+    try:
+        changes = parse_kanban_changes(ai_response)
+    except ValueError as exc:
+        raise HTTPException(status_code=502, detail=str(exc))
+
+    applied = apply_kanban_changes(db_connection, changes)
+    updated_board = get_board(db_connection)
+    return {"response": ai_response, "changes": applied, "board": updated_board}
 
 @app.get("/api/board", response_model=BoardOut)
 def read_board():

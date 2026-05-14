@@ -6,7 +6,7 @@ from unittest.mock import AsyncMock, Mock, patch
 
 sys.path.insert(0, str(Path(__file__).parent.parent.resolve()))
 
-from ai import call_ai, check_ai_connectivity, get_openrouter_api_key
+from ai import call_ai, check_ai_connectivity, get_openrouter_api_key, parse_kanban_changes
 
 
 def test_get_openrouter_api_key() -> None:
@@ -114,3 +114,16 @@ async def test_test_ai_connectivity() -> None:
         with patch("httpx.AsyncClient", return_value=mock_client):
             response = await check_ai_connectivity()
             assert response == "4"
+
+
+def test_parse_kanban_changes() -> None:
+    raw = '{"column_updates":[{"id":1,"name":"New Backlog","position":0}],"card_updates":[{"id":2,"title":"Updated title"}]}'
+    parsed = parse_kanban_changes(raw)
+    assert parsed["column_updates"][0]["name"] == "New Backlog"
+    assert parsed["card_updates"][0]["title"] == "Updated title"
+
+
+def test_parse_kanban_changes_from_code_fence() -> None:
+    raw = '```json\n{"card_updates":[{"id":3,"details":"Changed details"}]}\n```'
+    parsed = parse_kanban_changes(raw)
+    assert parsed["card_updates"][0]["details"] == "Changed details"
