@@ -2,6 +2,7 @@ from pathlib import Path
 
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse
+from pydantic import BaseModel
 
 try:
     from backend.db import (
@@ -25,6 +26,7 @@ try:
         ColumnCreate,
         ColumnUpdate,
     )
+    from backend.ai import check_ai_connectivity, call_ai
 except ImportError:
     from db import (
         create_card,
@@ -47,6 +49,12 @@ except ImportError:
         ColumnCreate,
         ColumnUpdate,
     )
+    from ai import check_ai_connectivity, call_ai
+
+
+class ChatRequest(BaseModel):
+    prompt: str
+    model: str = "openai/gpt-4o-mini"
 
 BASE_DIR = Path(__file__).resolve().parent
 STATIC_DIR = BASE_DIR / "static"
@@ -57,6 +65,16 @@ db_connection = create_connection()
 @app.get("/api/test")
 def test_api():
     return {"message": "API is working!"}
+
+@app.get("/api/ai/test")
+async def test_ai_connectivity_endpoint():
+    response = await check_ai_connectivity()
+    return {"response": response}
+
+@app.post("/api/ai/chat")
+async def chat_with_ai(request: ChatRequest):
+    response = await call_ai(request.prompt, request.model)
+    return {"response": response}
 
 @app.get("/api/board", response_model=BoardOut)
 def read_board():

@@ -2,6 +2,7 @@ import importlib
 import os
 import sys
 from pathlib import Path
+from unittest.mock import AsyncMock, Mock, patch
 
 from fastapi.testclient import TestClient
 
@@ -124,3 +125,54 @@ def test_reorder_cards_updates_positions(tmp_path: Path) -> None:
     refreshed_backlog = next(column for column in refreshed_board["columns"] if column["name"] == "Backlog")
     assert refreshed_backlog["cards"][0]["id"] == second_card_id
     assert refreshed_backlog["cards"][1]["id"] == first_card_id
+
+
+def test_ai_test_endpoint(tmp_path: Path) -> None:
+    """Test the AI connectivity endpoint."""
+    with patch.dict(os.environ, {"OPENROUTER_API_KEY": "test-key"}):
+        client = build_test_client(tmp_path)
+        
+        mock_response = {
+            "choices": [{"message": {"content": "4"}}]
+        }
+        
+        mock_post_response = AsyncMock()
+        mock_post_response.json = Mock(return_value=mock_response)
+        mock_post_response.raise_for_status = Mock()
+        
+        mock_http_client = AsyncMock()
+        mock_http_client.post = AsyncMock(return_value=mock_post_response)
+        mock_http_client.__aenter__.return_value = mock_http_client
+        mock_http_client.__aexit__.return_value = None
+        
+        with patch("httpx.AsyncClient", return_value=mock_http_client):
+            response = client.get("/api/ai/test")
+            assert response.status_code == 200
+            assert response.json()["response"] == "4"
+
+
+def test_ai_chat_endpoint(tmp_path: Path) -> None:
+    """Test the AI chat endpoint."""
+    with patch.dict(os.environ, {"OPENROUTER_API_KEY": "test-key"}):
+        client = build_test_client(tmp_path)
+        
+        mock_response = {
+            "choices": [{"message": {"content": "This is the AI response"}}]
+        }
+        
+        mock_post_response = AsyncMock()
+        mock_post_response.json = Mock(return_value=mock_response)
+        mock_post_response.raise_for_status = Mock()
+        
+        mock_http_client = AsyncMock()
+        mock_http_client.post = AsyncMock(return_value=mock_post_response)
+        mock_http_client.__aenter__.return_value = mock_http_client
+        mock_http_client.__aexit__.return_value = None
+        
+        with patch("httpx.AsyncClient", return_value=mock_http_client):
+            response = client.post(
+                "/api/ai/chat",
+                json={"prompt": "Tell me a joke"}
+            )
+            assert response.status_code == 200
+            assert response.json()["response"] == "This is the AI response"

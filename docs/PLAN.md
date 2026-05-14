@@ -107,9 +107,9 @@
 ## Part 8: AI connectivity
 
 **Checklist:**
-- [ ] Add OpenRouter API key to backend
-- [ ] Implement simple AI call (e.g., "2+2")
-- [ ] Write test for AI connectivity
+- [x] Add OpenRouter API key to backend
+- [x] Implement simple AI call (e.g., "2+2")
+- [x] Write test for AI connectivity
 
 **Tests & Success Criteria:**
 - Backend can call AI and receive response

@@ -14,7 +14,7 @@ WORKDIR /app
 RUN pip install --no-cache-dir uv
 
 # Install backend dependencies using uv into the system environment
-RUN uv pip install --system fastapi uvicorn
+RUN uv pip install --system fastapi uvicorn httpx
 
 # Copy backend code
 COPY backend/ ./
