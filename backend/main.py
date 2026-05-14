@@ -80,7 +80,10 @@ async def test_ai_connectivity_endpoint():
 
 @app.post("/api/ai/chat")
 async def chat_with_ai(request: ChatRequest):
-    response = await call_ai(request.prompt, request.model)
+    try:
+        response = await call_ai(request.prompt, request.model)
+    except RuntimeError as exc:
+        raise HTTPException(status_code=502, detail=str(exc))
     return {"response": response}
 
 @app.post("/api/ai/kanban")
@@ -89,7 +92,11 @@ async def ai_kanban_update(request: AiKanbanRequest):
     if board is None:
         raise HTTPException(status_code=404, detail="Board not found")
 
-    ai_response = await call_ai_with_board(request.prompt, board, request.model)
+    try:
+        ai_response = await call_ai_with_board(request.prompt, board, request.model)
+    except RuntimeError as exc:
+        raise HTTPException(status_code=502, detail=str(exc))
+
     try:
         changes = parse_kanban_changes(ai_response)
     except ValueError as exc:

@@ -34,11 +34,19 @@ import {
   createCard as createCardApi,
   deleteCard as deleteCardApi,
   fetchBoard,
+  normalizeBoard,
   reorderCards,
+  updateBoardWithAi,
+  askAi,
   updateColumn,
 } from "@/lib/api";
 
 type Drafts = Record<string, { title: string; details: string }>;
+
+type AiMessage = {
+  sender: "You" | "AI";
+  text: string;
+};
 
 type CardPositionUpdate = {
   id: number;
@@ -105,6 +113,10 @@ export function KanbanBoard() {
   const [drafts, setDrafts] = useState<Drafts>({});
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [aiPrompt, setAiPrompt] = useState("");
+  const [aiMessages, setAiMessages] = useState<AiMessage[]>([]);
+  const [isAiLoading, setIsAiLoading] = useState(false);
+  const [aiError, setAiError] = useState<string | null>(null);
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
@@ -288,6 +300,61 @@ export function KanbanBoard() {
     }
   }
 
+  async function handleAiChat() {
+    if (!aiPrompt.trim()) {
+      return;
+    }
+
+    setAiError(null);
+    setIsAiLoading(true);
+
+    try {
+      const userMessage = aiPrompt.trim();
+      setAiMessages((current) => [...current, { sender: "You", text: userMessage }]);
+      setAiPrompt("");
+
+      const response = await askAi(userMessage);
+      setAiMessages((current) => [...current, { sender: "AI", text: response }]);
+    } catch (error) {
+      setAiError(
+        error instanceof Error
+          ? error.message
+          : "Unable to send your message. Please try again.",
+      );
+    } finally {
+      setIsAiLoading(false);
+    }
+  }
+
+  async function handleAiBoardUpdate() {
+    if (!aiPrompt.trim()) {
+      return;
+    }
+
+    setAiError(null);
+    setIsAiLoading(true);
+
+    try {
+      const userMessage = aiPrompt.trim();
+      setAiMessages((current) => [...current, { sender: "You", text: userMessage }]);
+      setAiPrompt("");
+
+      const result = await updateBoardWithAi(userMessage);
+      setAiMessages((current) => [...current, { sender: "AI", text: result.response }]);
+      const normalized = normalizeBoard(result.board);
+      setBoard(normalized);
+      setDrafts(buildDrafts(normalized.columns));
+    } catch (error) {
+      setAiError(
+        error instanceof Error
+          ? error.message
+          : "Unable to apply AI changes. Please try again.",
+      );
+    } finally {
+      setIsAiLoading(false);
+    }
+  }
+
   if (isLoading) {
     return <main className="app-shell">Loading board…</main>;
   }
@@ -327,32 +394,89 @@ export function KanbanBoard() {
         </div>
       </section>
 
-      <DndContext
-        id="launch-kanban-dnd"
-        sensors={sensors}
-        collisionDetection={closestCorners}
-        onDragEnd={handleDragEnd}
-      >
-        <section className="board" aria-label="Kanban board">
-          {board.columns.map((column) => (
-            <KanbanColumn
-              key={column.id}
-              column={column}
-              cards={column.cardIds.map((cardId) => board.cards[cardId])}
-              draft={drafts[column.id] ?? { title: "", details: "" }}
-              onDraftChange={(draft) =>
-                setDrafts((current) => ({
-                  ...current,
-                  [column.id]: draft,
-                }))
-              }
-              onAddCard={(event) => handleAddCard(event, column.id)}
-              onDeleteCard={handleDeleteCard}
-              onRename={(title) => handleRename(title, column.id)}
-            />
-          ))}
-        </section>
-      </DndContext>
+      <div className="board-grid">
+        <DndContext
+          id="launch-kanban-dnd"
+          sensors={sensors}
+          collisionDetection={closestCorners}
+          onDragEnd={handleDragEnd}
+        >
+          <section className="board" aria-label="Kanban board">
+            {board.columns.map((column) => (
+              <KanbanColumn
+                key={column.id}
+                column={column}
+                cards={column.cardIds.map((cardId) => board.cards[cardId])}
+                draft={drafts[column.id] ?? { title: "", details: "" }}
+                onDraftChange={(draft) =>
+                  setDrafts((current) => ({
+                    ...current,
+                    [column.id]: draft,
+                  }))
+                }
+                onAddCard={(event) => handleAddCard(event, column.id)}
+                onDeleteCard={handleDeleteCard}
+                onRename={(title) => handleRename(title, column.id)}
+              />
+            ))}
+          </section>
+        </DndContext>
+
+        <aside className="ai-sidebar" aria-label="AI assistant sidebar">
+          <div className="ai-sidebar-header">
+            <p className="eyebrow">AI assistant</p>
+            <h2>Ask the board</h2>
+            <p className="ai-description">
+              Send a question to the AI, or let it update the board directly.
+            </p>
+          </div>
+
+          <div className="ai-messages" role="log" aria-live="polite">
+            {aiMessages.length === 0 ? (
+              <p className="ai-empty">Type a request to start the chat.</p>
+            ) : (
+              aiMessages.map((message, index) => (
+                <div key={index} className={`ai-message ai-message-${message.sender.toLowerCase()}`}>
+                  <span className="ai-message-sender">{message.sender}</span>
+                  <p>{message.text}</p>
+                </div>
+              ))
+            )}
+          </div>
+
+          {aiError && <div className="ai-error">{aiError}</div>}
+
+          <label className="ai-input-label" htmlFor="ai-prompt">
+            AI request
+          </label>
+          <textarea
+            id="ai-prompt"
+            value={aiPrompt}
+            onChange={(event) => setAiPrompt(event.target.value)}
+            placeholder="Move the top card to Ready, or ask a question about the board"
+            rows={5}
+          />
+
+          <div className="ai-actions">
+            <button
+              type="button"
+              className="ai-button ai-button-primary"
+              disabled={isAiLoading || !aiPrompt.trim()}
+              onClick={handleAiChat}
+            >
+              {isAiLoading ? "Sending…" : "Ask AI"}
+            </button>
+            <button
+              type="button"
+              className="ai-button ai-button-secondary"
+              disabled={isAiLoading || !aiPrompt.trim()}
+              onClick={handleAiBoardUpdate}
+            >
+              {isAiLoading ? "Updating…" : "Update board"}
+            </button>
+          </div>
+        </aside>
+      </div>
     </main>
   );
 }

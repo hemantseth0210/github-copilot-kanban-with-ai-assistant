@@ -144,14 +144,145 @@ button {
   text-transform: uppercase;
 }
 
+.board-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  gap: 20px;
+  max-width: 1760px;
+  margin: 0 auto;
+}
+
 .board {
   display: grid;
   grid-template-columns: repeat(5, minmax(250px, 1fr));
   gap: 16px;
-  max-width: 1760px;
-  margin: 0 auto;
+  width: 100%;
   overflow-x: auto;
   padding-bottom: 12px;
+}
+
+.ai-sidebar {
+  display: flex;
+  flex-direction: column;
+  min-height: 660px;
+  gap: 16px;
+  padding: 22px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: var(--panel);
+  box-shadow: var(--shadow);
+}
+
+.ai-sidebar-header {
+  display: grid;
+  gap: 10px;
+}
+
+.ai-description {
+  color: #5f7188;
+  line-height: 1.5;
+}
+
+.ai-messages {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 220px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--soft-blue);
+  overflow-y: auto;
+}
+
+.ai-empty {
+  color: var(--gray-text);
+}
+
+.ai-message {
+  display: grid;
+  gap: 6px;
+  padding: 12px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.88);
+  border: 1px solid rgba(32, 157, 215, 0.1);
+}
+
+.ai-message-you {
+  border-color: rgba(117, 57, 145, 0.16);
+  align-self: flex-end;
+}
+
+.ai-message-ai {
+  border-color: rgba(236, 173, 10, 0.2);
+}
+
+.ai-message-sender {
+  color: var(--purple-secondary);
+  font-size: 0.78rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.ai-input-label {
+  color: var(--dark-navy);
+  font-weight: 800;
+}
+
+.ai-sidebar textarea {
+  width: 100%;
+  min-height: 116px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  resize: vertical;
+  background: #ffffff;
+  color: var(--text);
+}
+
+.ai-sidebar textarea:focus {
+  border-color: var(--blue-primary);
+  box-shadow: 0 0 0 3px rgba(32, 157, 215, 0.14);
+}
+
+.ai-actions {
+  display: grid;
+  gap: 10px;
+}
+
+.ai-button {
+  display: inline-flex;
+  width: 100%;
+  height: 46px;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 0;
+  border-radius: 12px;
+  font-weight: 800;
+}
+
+.ai-button-primary {
+  background: var(--purple-secondary);
+  color: #ffffff;
+}
+
+.ai-button-secondary {
+  background: var(--soft-yellow);
+  color: #8a6200;
+}
+
+.ai-button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.ai-error {
+  padding: 12px;
+  border-radius: 12px;
+  color: #7f1d1d;
+  background: #ffe6e6;
+  border: 1px solid #f5c2c7;
 }
 
 .column {

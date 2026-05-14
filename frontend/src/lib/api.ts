@@ -43,7 +43,7 @@ function normalizeColumn(column: ApiColumn): Column {
   };
 }
 
-function normalizeBoard(board: ApiBoard): BoardState {
+export function normalizeBoard(board: ApiBoard): BoardState {
   const cards = board.columns.flatMap((column) => column.cards.map(normalizeCard));
   return {
     columns: board.columns
@@ -53,15 +53,35 @@ function normalizeBoard(board: ApiBoard): BoardState {
   };
 }
 
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL?.replace(/\/$/, "") || "";
+
+function resolveApiPath(path: string): string {
+  return `${API_BASE_URL}${path}`;
+}
+
 async function handleJsonResponse<T>(response: Response): Promise<T> {
   if (!response.ok) {
-    throw new Error(`API request failed with status ${response.status}`);
+    let errorText = `API request failed with status ${response.status}`;
+
+    try {
+      const body = await response.json();
+      if (body?.detail) {
+        errorText = `API request failed: ${body.detail}`;
+      } else if (body?.message) {
+        errorText = `API request failed: ${body.message}`;
+      }
+    } catch {
+      // ignore parse errors
+    }
+
+    throw new Error(errorText);
   }
+
   return response.json();
 }
 
 export async function fetchBoard(): Promise<BoardState> {
-  const response = await fetch("/api/board");
+  const response = await fetch(resolveApiPath("/api/board"));
   const json = await handleJsonResponse<ApiBoard>(response);
   return normalizeBoard(json);
 }
@@ -72,7 +92,7 @@ export async function createCard(
   details: string,
   position: number,
 ): Promise<Card> {
-  const response = await fetch("/api/cards", {
+  const response = await fetch(resolveApiPath("/api/cards"), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ column_id: columnId, title, details, position }),
@@ -82,7 +102,7 @@ export async function createCard(
 }
 
 export async function deleteCard(cardId: number): Promise<void> {
-  const response = await fetch(`/api/cards/${cardId}`, {
+  const response = await fetch(resolveApiPath(`/api/cards/${cardId}`), {
     method: "DELETE",
   });
   await handleJsonResponse(response);
@@ -93,7 +113,7 @@ export async function updateColumn(
   name: string,
   position: number,
 ): Promise<void> {
-  const response = await fetch(`/api/columns/${columnId}`, {
+  const response = await fetch(resolveApiPath(`/api/columns/${columnId}`), {
     method: "PUT",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ name, position }),
@@ -104,10 +124,36 @@ export async function updateColumn(
 export async function reorderCards(
   cards: Array<{ id: number; column_id: number; position: number }>,
 ): Promise<void> {
-  const response = await fetch("/api/cards/reorder", {
+  const response = await fetch(resolveApiPath("/api/cards/reorder"), {
     method: "PUT",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ cards }),
   });
   await handleJsonResponse(response);
+}
+
+export async function askAi(
+  prompt: string,
+  model = "openai/gpt-4o-mini",
+): Promise<string> {
+  const response = await fetch(resolveApiPath("/api/ai/chat"), {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ prompt, model }),
+  });
+  const json = await handleJsonResponse<{ response: string }>(response);
+  return json.response;
+}
+
+export async function updateBoardWithAi(
+  prompt: string,
+  model = "openai/gpt-4o-mini",
+): Promise<{ response: string; board: ApiBoard }> {
+  const response = await fetch(resolveApiPath("/api/ai/kanban"), {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ prompt, model }),
+  });
+  const json = await handleJsonResponse<{ response: string; changes: unknown; board: ApiBoard }>(response);
+  return { response: json.response, board: json.board };
 }

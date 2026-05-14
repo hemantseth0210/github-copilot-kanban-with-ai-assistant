@@ -4,6 +4,7 @@ import sys
 from pathlib import Path
 from unittest.mock import AsyncMock, Mock, patch
 
+import httpx
 from fastapi.testclient import TestClient
 
 
@@ -176,6 +177,35 @@ def test_ai_chat_endpoint(tmp_path: Path) -> None:
             )
             assert response.status_code == 200
             assert response.json()["response"] == "This is the AI response"
+
+
+def test_ai_chat_endpoint_returns_502_on_openrouter_error(tmp_path: Path) -> None:
+    with patch.dict(os.environ, {"OPENROUTER_API_KEY": "test-key"}):
+        client = build_test_client(tmp_path)
+
+        mock_response = AsyncMock()
+        mock_response.status_code = 402
+        mock_response.json = Mock(return_value={"error": {"message": "Insufficient credits"}})
+        mock_response.text = "Payment required"
+
+        request_exc = httpx.HTTPStatusError(
+            "Client error",
+            request=Mock(),
+            response=mock_response,
+        )
+
+        mock_http_client = AsyncMock()
+        mock_http_client.post = AsyncMock(side_effect=request_exc)
+        mock_http_client.__aenter__.return_value = mock_http_client
+        mock_http_client.__aexit__.return_value = None
+
+        with patch("httpx.AsyncClient", return_value=mock_http_client):
+            response = client.post(
+                "/api/ai/chat",
+                json={"prompt": "Tell me a joke"}
+            )
+            assert response.status_code == 502
+            assert "OpenRouter API error 402" in response.json()["detail"]
 
 
 def test_ai_kanban_endpoint_applies_changes(tmp_path: Path) -> None:

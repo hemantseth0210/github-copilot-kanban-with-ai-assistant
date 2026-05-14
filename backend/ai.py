@@ -32,14 +32,26 @@ async def call_ai(prompt: str, model: str = "openai/gpt-4o-mini") -> str:
     }
 
     async with httpx.AsyncClient() as client:
-        response = await client.post(
-            "https://openrouter.ai/api/v1/chat/completions",
-            json=payload,
-            headers=headers,
-            timeout=30.0,
-        )
-        response.raise_for_status()
-        data = response.json()
+        try:
+            response = await client.post(
+                "https://openrouter.ai/api/v1/chat/completions",
+                json=payload,
+                headers=headers,
+                timeout=30.0,
+            )
+            response.raise_for_status()
+            data = response.json()
+        except httpx.HTTPStatusError as exc:
+            body = None
+            try:
+                body = exc.response.json()
+            except ValueError:
+                body = exc.response.text
+            raise RuntimeError(
+                f"OpenRouter API error {exc.response.status_code}: {body}"
+            ) from exc
+        except httpx.RequestError as exc:
+            raise RuntimeError(f"OpenRouter request failed: {exc}") from exc
 
     if "choices" not in data or len(data["choices"]) == 0:
         raise ValueError("Invalid response from OpenRouter API")

@@ -1,3 +1,4 @@
+import httpx
 import os
 import sys
 import pytest
@@ -72,6 +73,31 @@ async def test_call_ai_default_model() -> None:
             call_args = mock_client.post.call_args
             payload = call_args.kwargs["json"]
             assert payload["model"] == "openai/gpt-4o-mini"
+
+
+@pytest.mark.asyncio
+async def test_call_ai_handles_http_status_error() -> None:
+    """Test that HTTP status errors from OpenRouter are wrapped with details."""
+    mock_response = AsyncMock()
+    mock_response.status_code = 402
+    mock_response.json = Mock(return_value={"error": {"message": "Insufficient credits"}})
+    mock_response.text = "Payment required"
+
+    request_exc = httpx.HTTPStatusError(
+        "Client error",
+        request=Mock(),
+        response=mock_response,
+    )
+
+    mock_client = AsyncMock()
+    mock_client.post = AsyncMock(side_effect=request_exc)
+    mock_client.__aenter__.return_value = mock_client
+    mock_client.__aexit__.return_value = None
+
+    with patch.dict(os.environ, {"OPENROUTER_API_KEY": "test-key"}):
+        with patch("httpx.AsyncClient", return_value=mock_client):
+            with pytest.raises(RuntimeError, match="OpenRouter API error 402"):
+                await call_ai("test prompt")
 
 
 @pytest.mark.asyncio
